@@ -1,0 +1,28 @@
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="json_data" value='{{ data|safe }}'>
+    <table>
+        <tr>
+            <th>ID</th>
+        </tr>
+        {% for node in data.nodes %}
+            <tr>
+                <td><input type="text" name="node{{ forloop.counter0 }}" value="{{ node.id }}"></td>
+            </tr>
+        {% endfor %}
+    </table>
+    <table>
+        <tr>
+            <th>source</th>
+            <th>target</th>
+        </tr>
+        {% for link in data.links %}
+            <tr>
+                <td><input type="text" name="source{{ forloop.counter0 }}" value="{{ link.source }}"></td>
+                <td><input type="text" name="target{{ forloop.counter0 }}" value="{{ link.target }}"></td>
+            </tr>
+        {% endfor %}
+    </table>
+    <br>
+    <input type="submit" value="Save">
+</form>

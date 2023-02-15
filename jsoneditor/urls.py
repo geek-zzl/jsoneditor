@@ -15,10 +15,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from editor.views import json_editor
-from editor.views import json_editor2
+from editor import views
+
 
 urlpatterns = [
-    path('json-editor/', json_editor, name='json_editor'),
-    path('json-editor2/', json_editor2, name='json_editor'),
+    path('json-editor/', views.new_json_editor, name='json_editor'),
+    path('json-editor2/', views.json_editor2, name='json_editor'),
 ]

@@ -23,6 +23,28 @@ import json
 import json
 
 
+def new_json_editor(request):
+    with open('editor/static/data/graph-e.json', 'r') as f:
+        data = json.load(f)
+
+    if request.method == 'POST':
+        # 更新nodes
+        post_data = json.loads(request.POST.get('json_data'))
+        for i, node in enumerate(data['nodes']):
+            node_id = post_data['nodes'][i]['id']
+            node['id'] = node_id
+
+        # 更新links
+        for i, link in enumerate(data['links']):
+            source = post_data['links'][i]['source']
+            target = post_data['links'][i]['target']
+            link['source'] = source
+            link['target'] = target
+
+        with open('editor/static/data/graph-e.json', 'w') as f:
+            json.dump(data, f, indent=4)
+
+    return render(request, 'the_new_editorr.html', {'data': data})
 def json_editor(request):
     with open('editor/static/data/graph-e.json', 'r') as f:
         data = json.load(f)

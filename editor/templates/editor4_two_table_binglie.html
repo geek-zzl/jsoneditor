@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JSON Editor</title>
+    <style>
+        .table-container {
+            display: flex;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 50%;
+            margin: 10px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 8px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>JSON Editor</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="table-container">
+            <table>
+                <tr>
+                    <th>ID</th>
+                </tr>
+                {% for node in data.nodes %}
+                    <tr>
+                        <td><input type="text" name="node{{ forloop.counter0 }}" value="{{ node.id }}"></td>
+                    </tr>
+                {% endfor %}
+            </table>
+            <table>
+                <tr>
+                    <th>source</th>
+                    <th>target</th>
+                </tr>
+                {% for link in data.links %}
+                    <tr>
+                        <td><input type="text" name="node{{ forloop.counter0 }}" value="{{ link.source }}"></td>
+                        <td><input type="text" name="node{{ forloop.counter0 }}" value="{{ link.target }}"></td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+        <br>
+        <input type="submit" value="Save">
+    </form>
+</body>
+</html>

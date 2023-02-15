@@ -1,0 +1,21 @@
+{
+    "nodes": [
+        {
+            "id": "absences"
+        },
+        {
+            "id": "absences"
+        },
+        {
+            "id": "zhang"
+        }
+    ],
+    "links": [
+        {
+            "origin": "learned",
+            "weight": -1.0534423312927808,
+            "source": "paid",
+            "target": "absences"
+        }
+    ]
+}

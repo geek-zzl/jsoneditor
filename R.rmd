@@ -1,0 +1,336 @@
+# test
+
+## 0. load data
+
+```{r load data}
+
+# load data heart_disease
+getwd()
+setwd("C:/Users/HFY/Desktop/R_Final_Projects")
+heart <- read.csv("data/heart_disease_health_indicators_BRFSS2015.csv",header=TRUE) # nolint
+```
+
+## 1. Divide into 5 subsets
+
+### 1.1 divide
+
+```{r}
+# 将GenHealth分类变量转换为因子变量
+# as.factor(): covert to factor variable
+# 因子变量是一种特殊的分类变量，它的值是有限的，且有序的
+heart$GenHlth <- as.factor(heart$GenHlth)
+heart$HeartDiseaseorAttack <- as.factor(heart$HeartDiseaseorAttack)
+heart$HighBP <- as.factor(heart$HighBP)
+heart$HighChol <- as.factor(heart$HighChol)
+heart$CholCheck <- as.factor(heart$CholCheck)
+heart$Smoker <- as.factor(heart$Smoker)
+heart$Stroke <- as.factor(heart$Stroke)
+
+# 按GenHealth分类变量将数据集分成5个子数据集
+# sub1=heart[heart$GenHlth==1,]
+subset1 <- subset(heart, GenHlth == 1.0)
+subset2 <- subset(heart, GenHlth == 2.0)
+subset3 <- subset(heart, GenHlth == 3.0)
+subset4 <- subset(heart, GenHlth == 4.0)
+subset5 <- subset(heart, GenHlth == 5.0)
+```
+
+### 1.2 Draw Histogram for each subset
+
+```{r}
+# 画出5个子数据集的BMI直方图
+library(ggplot2)
+# 创建直方图
+ggplot(heart, aes(x=BMI)) + 
+  geom_histogram(binwidth=1,position='stack') + 
+  labs(x ='BMI', title ='Histogram of BMI') +
+  facet_wrap(~GenHlth)
+
+# 将5个子数据集的BMI直方图放在一张图中
+ggplot(data=heart, aes(x=BMI, fill=GenHlth)) + 
+  geom_histogram(bins=20,position='stack')+ 
+  labs(x ='BMI', title ='Histogram of BMI') #+
+  # facet_wrap(~GenHlth)
+```
+
+## 2 investigation the 3-way interacting effects on BMI distribution shapes
+
+本标题的中文意思是：研究BMI分布形状的三个交互效应
+
+### 2.0 the function of Build_contigencytable
+```{r Build_contigencytable()}
+# function Build_contigencytable(data,group,variable,bins=10)
+# group: group factor, variable: variable in the histograms
+# bins: number of bins of the histogram
+# proportion: logical value, is it proportions, example page 25 of Lecture-Note-2.pdf.
+
+Build_contigencytable=function(data,group,variable,bins=10,proportion=FALSE){
+  table1=NULL
+  # create break points for the following histograms
+  # from minimum to maximum with equal distance
+  ax=seq(min(data[,variable]),max(data[,variable]),length.out=bins+1)
+  # Save histogram data
+  list_group=unique(data[,group])
+  for(i in list_group){
+    hg1=hist(data[data[,group]==i,variable], breaks = ax,plot = FALSE)
+    table1=rbind(table1,hg1$counts)
+  }
+  rownames(table1)=list_group
+  colnames(table1)=1:ncol(table1)
+  # calculate row sum and combine it  with the current table
+  table1=cbind(table1, 'Total'=apply(table1,1,sum))
+  # calculate column sum and combine it  with the current table
+  table1=rbind(table1, 'Total'=apply(table1,2,sum))
+
+  if(proportion){
+    # convert to proportions
+    n_col=ncol(table1)
+    for(i in 1:nrow(table1)){
+      table1[i,]=table1[i,]/table1[i,n_col]
+    }
+  }
+  table1
+}
+```
+
+### 2.1 绑定数据, 绘制conbined1的BMI直方图统计计算 线性回归
+
+```{r}
+# 导入iNZightTools包
+library(iNZightTools)
+# 选择需要合并的变量
+var <- c("HeartDiseaseorAttack", "HighBP", "HighChol")#, "Stroke","Smoker")
+# 合并变量
+combined1 <- combineCatVars(subset1, var, "merged_var", sep = "_")
+```
+
+```{r}
+# 画出合并后的数据集的BMI直方图
+library(ggplot2)
+# 创建直方图
+ggplot(combined1, aes(x=BMI)) + 
+  geom_histogram(binwidth=1,position='stack') + 
+  labs(x ='BMI', title ='Histogram of BMI') +
+  facet_wrap(~merged_var)
+```
+
+```{r lm}
+# 计算描述性统计
+print("The summary of BMI is: ")
+summary(combined1$BMI)
+
+# 计算频率表
+print("The frequency table of merged_var is: ")
+table(combined1$merged_var)
+
+summary(lm(BMI~HeartDiseaseorAttack*HighBP*HighChol, data=combined1))
+```
+
+lm模型的结果如下
+```
+Call:
+lm(formula = BMI ~ HeartDiseaseorAttack * HighBP * HighChol, 
+    data = combined1)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-13.377  -3.204  -0.936   1.796  69.796 
+
+Coefficients:
+                                        Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                             25.20373    0.03003 839.283  < 2e-16 ***
+HeartDiseaseorAttack1                    0.48552    0.32052   1.515    0.130    
+HighBP1                                  2.05942    0.08006  25.722  < 2e-16 ***
+HighChol1                                0.73227    0.06609  11.080  < 2e-16 ***
+HeartDiseaseorAttack1:HighBP1           -0.02735    0.49790  -0.055    0.956    
+HeartDiseaseorAttack1:HighChol1          0.31620    0.49585   0.638    0.524    
+HighBP1:HighChol1                       -0.61879    0.12800  -4.834 1.34e-06 ***
+HeartDiseaseorAttack1:HighBP1:HighChol1 -0.07329    0.67941  -0.108    0.914    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 5.056 on 45291 degrees of freedom
+Multiple R-squared:  0.02753,	Adjusted R-squared:  0.02738 
+F-statistic: 183.1 on 7 and 45291 DF,  p-value: < 2.2e-16
+```
+从结果中我们可以得出一下结论：
+1. 三个因子的p值都小于0.05，说明三个因子对BMI有显著影响
+2. HeartDiseaseorAttack1:HighBP1的p值=0.956，说明这个交互效应对BMI的影响小
+3. HeartDiseaseorAttack1:HighChol1的p值=0.524，说明这个交互效应对BMI的影响小
+4. HighBP1:HighChol1的p值=1.34e-06，说明这个交互效应对BMI的影响最大
+5. HeartDiseaseorAttack1:HighBP1:HighChol1的系数为-0.07329，说明这个交互效应对BMI的影响是负的，说明这个交互效应对BMI的影响最小
+6. Residuals的最大值为69.796，说明模型的拟合效果不是很好,这样会导致模型的解释能力不强
+7. Multiple R-squared:  0.02753,	Adjusted R-squared:  0.02738，说明模型的解释能力不是很强
+8. F-statistic: 183.1 on 7 and 45291 DF,  p-value: < 2.2e-16，说明模型的拟合效果不是很好
+9. Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1，说明HeartDiseaseorAttack1:HighBP1:HighChol1的p值最大，说明这个交互效应对BMI的影响最小
+
+### 2.2 建立频率联合表
+
+```{r}
+im=min(combined1[,"BMI"])
+am=max(combined1[,"BMI"])
+bin_size = am - im + 1
+# bin_size = 10
+combined1$merged_var = as.factor(combined1$merged_var)
+
+
+table1 = Build_contigencytable(combined1,"merged_var","BMI",bins=bin_size,proportion=FALSE)
+table1 = as.data.frame(table1)
+# 去掉最后一行和最后一列
+df1 = table1[-nrow(table1),-ncol(table1)]
+
+
+library(pheatmap)
+pheatmap(df1)
+pheatmap(df1, scale="row",color=colorRampPalette(c("navy", "white", "red"))(50))
+```
+
+## 3. HC-approach 对频率连表进行聚类
+
+### 3.1 选择合适的k值与linkage method
+
+```{r}
+k_max = nrow(df1) - 1
+```
+#### 3.1.1 average linkage method
+```{r}
+library(factoextra)
+library(cluster)
+# calculate gap statistic
+# K.max the maximum number of clusters to consider, must be at least two.
+# hc_method: the argument in the function, linkage method
+# different linkage method may leads to different result.
+gap_stat <- clusGap(df1, FUN = hcut, K.max = k_max,hc_method = "average")
+fviz_gap_stat(gap_stat)
+```
+
+#### 3.1.2 ward linkage method
+```{r}
+library(factoextra)
+library(cluster)
+# calculate gap statistic
+# K.max the maximum number of clusters to consider, must be at least two.
+# hc_method: the argument in the function, linkage method
+# different linkage method may leads to different result.
+gap_stat <- clusGap(df1, FUN = hcut, K.max = k_max,hc_method = "ward.D2")
+fviz_gap_stat(gap_stat)
+```
+#### 3.1.3 complete linkage method
+```{r}  
+library(factoextra)
+library(cluster)
+# calculate gap statistic
+# K.max the maximum number of clusters to consider, must be at least two.
+# hc_method: the argument in the function, linkage method
+# different linkage method may leads to different result.
+gap_stat <- clusGap(df1, FUN = hcut, K.max = k_max,hc_method = "complete")
+fviz_gap_stat(gap_stat)
+```
+
+#### 3.1.4 single linkage method
+```{r}
+library(factoextra)
+library(cluster)
+# calculate gap statistic
+# K.max the maximum number of clusters to consider, must be at least two.
+# hc_method: the argument in the function, linkage method
+# different linkage method may leads to different result.
+gap_stat <- clusGap(df1, FUN = hcut, K.max = k_max,hc_method = "single")
+fviz_gap_stat(gap_stat)
+```
+
+#### 3.1.5 centroid linkage method
+```{r}
+library(factoextra)
+library(cluster)
+# calculate gap statistic
+# K.max the maximum number of clusters to consider, must be at least two.
+# hc_method: the argument in the function, linkage method
+# different linkage method may leads to different result.
+gap_stat <- clusGap(df1, FUN = hcut, K.max = k_max,hc_method = "centroid")
+fviz_gap_stat(gap_stat)
+```
+
+#### 3.1.6 median linkage method
+```{r}
+library(factoextra)
+library(cluster)
+# calculate gap statistic
+# K.max the maximum number of clusters to consider, must be at least two.
+# hc_method: the argument in the function, linkage method
+# different linkage method may leads to different result.
+gap_stat <- clusGap(df1, FUN = hcut, K.max = k_max,hc_method = "median")
+fviz_gap_stat(gap_stat)
+```
+
+#### 3.1.7 mcquitty linkage method
+```{r}
+library(factoextra)
+library(cluster)
+# calculate gap statistic
+# K.max the maximum number of clusters to consider, must be at least two.
+# hc_method: the argument in the function, linkage method
+# different linkage method may leads to different result.
+gap_stat <- clusGap(df1, FUN = hcut, K.max = k_max,hc_method = "mcquitty")
+fviz_gap_stat(gap_stat)
+```
+
+> 根据实验结果我们可以发现，当k=12时，采用single linkage method时，gap statistic的值最大，因此我们选择k=12。
+
+### 3.2 HC聚类
+
+使用single linkage method对df1进行聚类，代码如下：
+  
+```{r}
+# single linkage method
+clusters <- hclust(dist(df1), method = "single")
+#设置树形图的高度为20，宽度为10
+par(cex = 0.8, mai = c(0, 0, 1, 0))
+plot(clusters,xlab='',main='Dendrogram')
+# plot(clusters, hang = -1, labels = FALSE, main = "Single Linkage Method")
+# 参数 分别是：聚类结果，k值，矩形颜色，矩形边框颜色，矩形边框宽度，矩形透明度
+clusterCut <- cutree(clusters, 5)
+rect.hclust(clusters, k=5)
+```
+
+## 5. 熵approach
+
+```{r}
+bin_size = 10
+combined1$merged_var = as.factor(combined1$merged_var)
+
+
+table1 = Build_contigencytable(combined1,"merged_var","BMI",bins=bin_size,proportion=TRUE)
+# table1 = as.data.frame(table1)
+
+table1
+```
+
+```{r}
+# discard the last column all are ones.
+# 1:(ncol(table1)-1): a consecutive vector of 1,2,.,. ncol(table1)-1
+# ncol(table1): return the number of columns of table1
+# subset technique
+px=table1[,-ncol(table1)]
+
+px
+# load package DescTools
+library(DescTools)
+# Entropy(x,base): calculate Shannon entropy
+# x: contingency table
+# base: base of the logarithm to be used, defaults to 2.
+# formula 1: H[Z]
+# use the third row
+
+# 计算px各行的香农熵并将结果存储在向量entropy中
+entropy = sapply(1:nrow(px), function(i) Entropy(px[i,],base=exp(1)))
+
+set.seed(123)
+
+entropy_simulate = sapply(1:nrow(px), function(i) Entropy(rmultinom(1,100,px[i,]),base=exp(1)))
+
+# 将px的行名,entropy和entropy_simulate合并为一个data.frame(compare)
+compare = data.frame(rownames(px),entropy,entropy_simulate)
+compare
+
+```
